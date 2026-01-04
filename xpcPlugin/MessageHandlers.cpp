@@ -41,7 +41,7 @@ namespace XPC
 	UDPSocket* MessageHandlers::sock;
 
 	static sockaddr multicast_address = UDPSocket::GetAddr(MULTICAST_GROUP, MULITCAST_PORT);
-	
+
 	// define a static terrain probe handler (do not re-create probe for each query)
 	XPLMProbeRef Terrain_probe = nullptr;
 
@@ -637,11 +637,11 @@ namespace XPC
 	void MessageHandlers::HandlePosT(const Message& msg)
 	{
 		MessageHandlers::HandlePosi(msg);
-		
+
 		const unsigned char* buffer = msg.GetBuffer();
 		char aircraftNumber = buffer[5];
 		Log::FormatLine(LOG_TRACE, "POST", "Getting terrain information for aircraft %u", aircraftNumber);
-		
+
 		double pos[3];
 		pos[0] = DataManager::GetDouble(DREF_Latitude, aircraftNumber);
 		pos[1] = DataManager::GetDouble(DREF_Longitude, aircraftNumber);
@@ -660,10 +660,10 @@ namespace XPC
 		}
 		unsigned char aircraft = buffer[5];
 		Log::FormatLine(LOG_TRACE, "GETT", "Getting terrain information for aircraft %u", aircraft);
-		
+
 		double pos[3];
 		memcpy(pos, buffer + 6, 24);
-		
+
 		if(pos[0] == -998 || pos[1] == -998 || pos[2] == -998)
 		{
 			// get terrain properties at aircraft location
@@ -678,25 +678,25 @@ namespace XPC
 	void MessageHandlers::SendTerr(double pos[3], char aircraft)
 	{
 		double lat, lon, alt, X, Y, Z;
-		
+
 		// Init terrain probe (if required) and probe data struct
 		static XPLMProbeInfo_t probe_data;
 		probe_data.structSize = sizeof(XPLMProbeInfo_t);
-		
+
 		if(Terrain_probe == nullptr)
 		{
 			Log::FormatLine(LOG_TRACE, "TERR", "Create terrain probe for aircraft %u", aircraft);
 			Terrain_probe = XPLMCreateProbe(0);
 		}
-		
+
 		// terrain probe at specified location
 		// Follow the process in the following post to get accurate results
 		// https://forums.x-plane.org/index.php?/forums/topic/38688-how-do-i-use-xplmprobeterrainxyz/&page=2
-		
+
 		// transform probe location to local coordinates
 		// Step 1. Convert lat/lon/0 to XYZ
 		XPLMWorldToLocal(pos[0], pos[1], pos[2], &X, &Y, &Z);
-		
+
 		// query probe
 		// Step 2. Probe XYZ to get a new Y
 		int rc = XPLMProbeTerrainXYZ(Terrain_probe, X, Y, Z, &probe_data);
@@ -707,7 +707,7 @@ namespace XPC
 			Terrain_probe = nullptr;
 			return;
 		}
-		
+
 		// transform probe location to world coordinates
 		// Step 3. Convert that new XYZ back to LLE
 		XPLMLocalToWorld(probe_data.locationX, probe_data.locationY, probe_data.locationZ, &lat, &lon, &alt);
@@ -725,7 +725,7 @@ namespace XPC
 		// transform probe location to world coordinates
 		// Step 6. You now have a new Y, and your XYZ will be closer to correct for high elevations far from the origin.
 			XPLMLocalToWorld(probe_data.locationX, probe_data.locationY, probe_data.locationZ, &lat, &lon, &alt);
-			
+
 			Log::FormatLine(LOG_TRACE, "TERR", "Probe LLA %lf %lf %lf", lat, lon, alt);
 		}
 		else
@@ -733,13 +733,13 @@ namespace XPC
 			lat = -998;
 			lon = -998;
 			alt = -998;
-			
+
 			Log::FormatLine(LOG_TRACE, "TERR", "Probe failed. Return Value %u", rc);
 		}
 
 		// keep probe for next query
 		// XPLMDestroyProbe(Terrain_probe);
-		
+
 		// Assemble response message
 		unsigned char response[62] = "TERR";
 		response[5] = aircraft;
@@ -862,9 +862,9 @@ namespace XPC
 	{
 		// Update Log
 		Log::FormatLine(LOG_TRACE, "VIEW", "Message Received(Conn %i)", connection.id);
-		
+
 		bool enable_advanced_camera = false;
-		
+
 		const std::size_t size = msg.GetSize();
 		if (size == 9)
 		{
@@ -880,41 +880,41 @@ namespace XPC
 			Log::FormatLine(LOG_ERROR, "VIEW", "Error: Unexpected length. Message was %d bytes, expected 9 or 49.", size);
 			return;
 		}
-		
+
 		// get msg data
 		const unsigned char* buffer = msg.GetBuffer();
-		
+
 		// get view type
 		int view_type;
 		memcpy(&view_type, buffer + 5, 4);
-		
+
+		// TODO: find alternative method for this, docs didn't help
 		// set view by calling the corresponding key stroke
-		XPLMCommandKeyStroke(view_type);
-		
-		
+		//XPLMCommandKeyStroke(view_type);
+
 		VIEW_TYPE viewRunway = VIEW_TYPE::XPC_VIEW_RUNWAY;
 		VIEW_TYPE viewChase	 = VIEW_TYPE::XPC_VIEW_CHASE;
-		
+
 		// advanced runway camera view
 		if(view_type == static_cast<int>(viewRunway) && enable_advanced_camera == true)
 		{
 			static struct CameraProperties campos; // static variable for continuous callback access
-			
+
 			memcpy(&campos, buffer+9 , sizeof(struct CameraProperties));
-			
+
 			Log::FormatLine(LOG_TRACE, "VIEW", "Cam pos %f %f %f zoom %f", campos.loc[0], campos.loc[1], campos.loc[2], campos.zoom);
-			
+
 			XPLMControlCamera(xplm_ControlCameraUntilViewChanges, CamCallback_RunwayCam, &campos);
 		}
 		// advanced chase camera view
 		else if(view_type == static_cast<int>(viewChase) && enable_advanced_camera == true)
 		{
 			static struct CameraProperties campos;	// static variable for continuous callback access
-			
+
 			memcpy(&campos, buffer+9 , sizeof(struct CameraProperties));
-			
+
 			Log::FormatLine(LOG_TRACE, "VIEW", "Cam pos %f %f %f zoom %f", campos.loc[0], campos.loc[1], campos.loc[2], campos.zoom);
-			
+
 			XPLMControlCamera(xplm_ControlCameraUntilViewChanges, CamCallback_ChaseCam, &campos);
 		}
 	}

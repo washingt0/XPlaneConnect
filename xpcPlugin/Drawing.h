@@ -2,6 +2,7 @@
 // National Aeronautics and Space Administration. All Rights Reserved.
 #ifndef XPCPLUGIN_DRAWING_H_
 #define XPCPLUGIN_DRAWING_H_
+#define XPLM302
 
 #include <cstdlib>
 
