@@ -1,3 +1,9 @@
+## Updated SDK to 420 to make compatible with [XPlane 12.3.0](https://developer.x-plane.com/sdk/plugin-sdk-downloads/) and newer
+### The change wasn't completelly tested, use by your risk
+### It seems to work enough for [LRM linux client](https://wiki.fshub.io/lrm-client/v6/cli/xplane)
+
+-----
+
 # X-Plane Connect
 The X-Plane Connect (XPC) Toolbox is an open source research tool used to
 interact with the commercial flight simulator software X-Plane. XPC allows users
